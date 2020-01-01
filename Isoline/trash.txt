@@ -1,0 +1,285 @@
+﻿public void FindLevelLines(float level)
+{
+    Segment[] crossedSegments;      // Список ребер ячейки с пересечением.
+            
+    FindCrossedSegments(level);
+    InitialNewLine(level);
+
+    goto FistIteration;
+
+FindNextPoint:
+    curCell = GetAdjacentCell(curCell, curSegment);
+
+    if (curCell == null)
+    {
+        InitialNewLine(level);
+    }
+
+FistIteration:
+    curCell.IsMarked = true;
+
+    crossedSegments = curCell.GetCrossedSides();
+
+    switch (crossedSegments.Length)
+    {
+        case 0:
+            // Убедимся, что в текущей ячейке нет начало линии, т.к начало линии имеет IsMarked = true, то
+            // нет гарантии что в текущей ячейке нет нужных нам ребер 
+            if (curCell.ContainsSegment(startOfLine))
+                goto case 1;
+                    
+            // Говорим, что в ячейке таки есть одно ребро, которое являеться началом линни.
+            // Иначе зашли в тупик
+            break;
+        case 1:
+            if (!curCell.ContainsSegment(startOfLine))
+            {
+                if (AddPoint(crossedSegments[0], level) == 0x00)
+                {
+                    goto FindNextPoint;
+                }
+                else
+                {
+                    goto Finalize;
+                }
+
+            }
+            // Если в текущей ячейке есть начало линии, то ...
+            else
+            {
+                levelLines.Add(new LevelLine(level, points));
+
+                if (GetCrossedSegmentsCount(false) > 0)
+                {
+                    InitialNewLine(level);
+                           
+                    goto FindNextPoint;
+                }
+                else
+                {
+                    goto Finalize;
+                }
+            }
+
+        case 2:
+        case 3:
+            if (!curCell.ContainsSegment(startOfLine))
+            {
+                // Назначим текущим первое попавшееся ребро с пересечением, которое не противоположно текущему, как-то так ...
+                if (AddPoint(curCell.GetSideWithCommonNode(curSegment, curCell.GetOppositeSide(curSegment)), level) == 0x00)
+                {
+                    goto FindNextPoint;
+                }
+                else
+                {
+                    goto Finalize;
+                }
+            }
+            // Если в текущей ячейке есть начало линии, то ...
+            else
+            {
+                if (!curCell.GetOppositeSide(curSegment).Equals(startOfLine))
+                {
+                    curSegment = startOfLine;
+                    curSegment.IsMarked = true;
+
+                    AddPoint(curSegment.GetCrossPoint(level));
+
+                    levelLines.Add(new LevelLine(level, points));
+
+                    if (GetCrossedSegmentsCount(false) > 0)
+                    {
+                        InitialNewLine(level);
+                    }
+                    else
+                    {
+                        goto Finalize;
+                    }
+
+                    goto FindNextPoint;
+                }
+                else
+                {
+                    if (AddPoint(curCell.GetSideWithCommonNode(curSegment, startOfLine), level) == 0x00)
+                    {
+                        goto FindNextPoint;
+                    }
+                    else
+                    {
+                        goto Finalize;
+                    }
+                }
+            }
+    }
+
+Finalize:;
+}
+
+
+/*
+     public void FindLevelLine(int level)
+        {
+            #region Шаг 0, 1
+            int indexOfStartSegment = 0;
+
+            foreach (var segment in Segments)
+            {
+                if (segment.IsCrossing(level))
+                {
+                    indexOfStartSegment = Segments.FindIndex(x => segment.IsCrossed == true);
+                    break;
+                }
+            } 
+                 
+            Segment curSegment = Segments[indexOfStartSegment];
+            Cell curCell = Cells.Find(x => x.ContainsSegment(curSegment));
+
+            curSegment.IsMarked = true;
+            curCell.IsMarked = true;
+
+            #endregion
+            #region Шаг 2
+            // Шаг 2.1, осталось реализовать Шаг 2.2
+
+            Segment startSegmentOfLine = null;
+
+            List<LevelLine> levelLines = new List<LevelLine>();
+            LinkedList<PointF3D> points = new LinkedList<PointF3D>();
+            PointF3D crossPoint;
+
+        FindNextPoint:
+            Segment[] crossedSides = curCell.GetCrossedSides();
+            bool isGotEdge = false;
+
+            switch (crossedSides.Length)
+            {
+                case 1:
+                    crossPoint = crossedSides[0].GetCrossPoint(level);
+
+                    curSegment = crossedSides[0];
+                    curSegment.IsMarked = true;
+
+                    if (curSegment.IsStartOfLevelLine || (curSegment.IsEdge && GetCrossedSegmentsCount(level) == 0))
+                    {
+                        points.AddLast(crossPoint);
+                        levelLines.Add(new LevelLine(level, points));
+                    }
+
+                    if (curSegment.IsEdge && GetCrossedSegmentsCount(level) > 0)
+                    {
+                        points.AddLast(crossPoint);
+                        isGotEdge = true;
+
+                        SetCurrentCell(startSegmentOfLine);
+
+                        goto FindNextPoint;
+                    }
+
+                    if (!curSegment.IsEdge && !curSegment.IsStartOfLevelLine && GetCrossedSegmentsCount(level) > 0)
+                    {
+                        if (!isGotEdge) points.AddLast(crossPoint);
+                        else points.AddFirst(crossPoint);
+
+                        SetCurrentCell(curSegment);
+
+                        goto FindNextPoint;
+                    }
+
+                    break;
+                //case 2:
+                case 3:
+                    if (curCell.ContainsSegment(startSegmentOfLine) && GetCrossedSegmentsCount(level) == 3)
+                    {
+                        curSegment = curCell.GetSideWithCommonNode(curSegment, startSegmentOfLine);
+                        curSegment.IsMarked = true;
+
+                        crossPoint = curSegment.GetCrossPoint(level);
+                        points.AddLast(crossPoint);
+
+                        curSegment = curCell.GetCrossedSides()[0];
+                        curSegment.IsMarked = true;
+
+                        crossPoint = curSegment.GetCrossPoint(level);
+                        points.AddLast(crossPoint);
+
+                        points.AddLast(startSegmentOfLine.GetCrossPoint(level));
+                    }
+
+                    if (curCell.ContainsSegment(startSegmentOfLine) && GetCrossedSegmentsCount(level) > 3)
+                    {
+                        bool isCloseLine = (new Random().Next() % 2 == 0) ? true : false;
+
+                        if (isCloseLine)
+                        {
+                            if (curSegment.Start.Equals(startSegmentOfLine.Start) || curSegment.End.Equals(startSegmentOfLine.End))
+                            {
+                                points.AddLast(startSegmentOfLine.GetCrossPoint(level));
+                                
+                                levelLines.Add(new LevelLine(level, points));
+                                points.Clear();
+
+                                startSegmentOfLine.IsStartOfLevelLine = false;
+                                startSegmentOfLine = curCell.GetCrossedSides()[0];
+                                startSegmentOfLine.IsStartOfLevelLine = true;
+
+                                points.AddLast(startSegmentOfLine.GetCrossPoint(level));
+
+                                curSegment = startSegmentOfLine;
+                                curSegment.IsMarked = true;
+
+                                goto FindNextPoint;
+                            }
+                        }
+                        else
+                        {
+                            curSegment = curCell.GetSideWithCommonNode(curSegment, startSegmentOfLine);
+                            curSegment.IsMarked = true;
+
+                            crossPoint = curSegment.GetCrossPoint(level);
+
+                            points.AddLast(crossPoint);
+
+                            curSegment.CopyTo(out Segment prevSegment);
+                            curSegment = curCell.GetSideWithCommonNode(curSegment, prevSegment);
+
+                            crossPoint = curSegment.GetCrossPoint(level);
+
+                            points.AddLast(crossPoint);
+
+                            curSegment.IsMarked = true;
+
+                            SetCurrentCell(curSegment);
+                            goto FindNextPoint;
+                        }
+                    }
+
+                    if (!curCell.ContainsSegment(startSegmentOfLine))
+                    {
+                        Segment opposite = curCell.GetOppositeSide(curSegment);
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            if (!crossedSides[i].Equals(opposite))
+                            {
+                                curSegment = crossedSides[i];
+                                curSegment.IsMarked = true;
+
+                                crossPoint = curSegment.GetCrossPoint(level);
+                                points.AddLast(crossPoint);
+                                
+                                break;
+                            }
+                        }
+
+                        goto FindNextPoint;
+                    }
+
+                    break;
+            }
+
+            #endregion
+
+
+
+        }
+*/
