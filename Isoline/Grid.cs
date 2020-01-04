@@ -8,6 +8,8 @@ namespace Isoline
 {
     public class Grid
     {
+        public const float LevelShift = 0.001f;
+
         private LinkedList<PointF3D> points;
         private bool isGotEdge;
 
@@ -19,7 +21,16 @@ namespace Isoline
         public Grid() 
         {
             points = new LinkedList<PointF3D>();
-            isGotEdge = false;
+
+            SetDefaultState();
+        }
+
+        public Grid(List<PointF3D> nodes) : this()
+        {
+            Nodes = nodes;
+
+            foreach (var node in Nodes)
+                node.Z += LevelShift;
         }
 
         public List<PointF3D> Nodes { get; set; } = new List<PointF3D>();
@@ -29,8 +40,14 @@ namespace Isoline
 
         public void FindLevelLines(float[] levels)
         {
+            float minLvl = Nodes.Min(node => node.Z) - LevelShift
+                , maxLvl = Nodes.Max(node => node.Z) - LevelShift;
+
             foreach (var level in levels)
             {
+                if (level < minLvl || level > maxLvl)
+                    continue;
+
                 LevelLines.Add(new LevelLinesKit() {
                     Level = level,
                     Lines = FindLevelLines(level)
@@ -83,7 +100,9 @@ namespace Isoline
                     goto FindNextPoint;
                 // Нашли три обычных ребра с пересечением.
                 case 3:
+                    // Выбо первого попавшегося смежного ребра.
                     //curSegment = curCell.GetSideWithCommonNode(curSegment, curCell.GetOppositeSide(curSegment));
+                    
                     // Случайный выбор ребра из двух возможных(смежных).
                     crossedSegments = curCell.GetOppositeSidesByNodes(curSegment);
                     
@@ -110,13 +129,30 @@ namespace Isoline
 
                     goto FindNextPoint;
             }
-            
-            //// Добавим последнию линию.
-            //levelLines.Add(new LevelLine(level, points.ToArray()));
+
+            levelLines.AddRange(FindLevelLinesOfOnePoint(level));
 
             return levelLines.ToArray();
         }
-        
+
+        public LevelLine[] FindLevelLinesOfOnePoint(float level)
+        {
+            List<LevelLine> levelLines = new List<LevelLine>();
+            float levelWithShift = level + LevelShift;
+
+            foreach (var node in Nodes)
+            {
+                // Проверка на узлах.
+                if (node.Z == levelWithShift)
+                {
+                    if (CheckCrossingSegments(GetSegmentsWithCommonNode(node)) == false)
+                        levelLines.Add(new LevelLine(level, new PointF3D[] { node }));
+                }
+            }
+
+            return levelLines.ToArray();
+        }
+
         private void AddPoint(PointF3D point)
         {
             // DEBUG
@@ -128,19 +164,21 @@ namespace Isoline
                 points.AddLast(point);
         }
 
-        private int FindCrossedSegments(float level)
+        private bool CheckCrossingSegments(Segment[] segments)
         {
-            int countOfCrossedSegments = 0;
+            bool result = false;
 
-            foreach (var segment in Segments)
-            {
-                segment.IsCrossing(level);
-
+            foreach (var segment in segments)
                 if (segment.IsCrossed)
-                    countOfCrossedSegments++;
-            }
+                    result = true;
 
-            return countOfCrossedSegments;
+            return result;
+        }
+
+        private void FindCrossedSegments(float level)
+        {
+            foreach (var segment in Segments)
+                segment.IsCrossing(level);
         }
 
         private void SetDefaultState()
@@ -175,12 +213,23 @@ namespace Isoline
             foreach (var segment in Segments)
             {
                 if (segment.IsCrossed && segment.IsMarked == isMarked)
-                {
                     crossedSegmetnsCount++;
-                }
             }
 
             return crossedSegmetnsCount;
+        }
+
+        private Segment[] GetSegmentsWithCommonNode(PointF3D node)
+        {
+            List<Segment> segments = new List<Segment>();
+
+            foreach (var segment in Segments)
+            {
+                if (segment.ContainsPoint(node))
+                    segments.Add(segment);
+            }
+
+            return segments.ToArray();
         }
 
         private LevelLine InitialNewLine(float level)

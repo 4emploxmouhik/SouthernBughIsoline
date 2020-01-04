@@ -13,6 +13,18 @@ namespace Isoline
             sides[1] = left;
             sides[2] = right;
             sides[3] = bottom;
+
+            // DEBUG
+            HashSet<string> leters = new HashSet<string>();
+
+            foreach (var side in sides)
+            {
+                leters.Add(side.Start.Name);
+                leters.Add(side.End.Name);
+            }
+
+            foreach (var letter in leters)
+                Name += letter;
         }
 
         // DEBUG
