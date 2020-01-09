@@ -131,28 +131,33 @@ namespace SouthernBughIsoline
             //    num = 1;
             //}
 
-            grid.FindLevelLines(new[] { 5f, 8f });
+            //grid.FindLevelLines(new[] { 5f, 8f, 10.001f });
 
-            foreach (var lvlLine in grid.LevelLines)
-            {
-                Console.WriteLine("\nLevel = " + lvlLine.Level);
+            //foreach (var lvlLine in grid.LevelLines)
+            //{
+            //    Console.WriteLine("\nLevel = " + lvlLine.Level);
 
-                for (x = 0; x < lvlLine.Lines.Length; x++)
-                {
-                    Console.Write($"Line #{num++}: ");
+            //    for (x = 0; x < lvlLine.Lines.Length; x++)
+            //    {
+            //        Console.Write($"Line #{num++}: ");
 
-                    foreach (var point in lvlLine.Lines[x].Points)
-                    {
-                        Console.Write(point.Parent.Name + " ");
-                    }
+            //        foreach (var point in lvlLine.Lines[x].Points)
+            //        {
+            //            Console.Write(point.Parent.Name + " ");
+            //        }
 
-                    Console.WriteLine();
-                }
+            //        Console.WriteLine();
+            //    }
 
-                num = 1;
-            }
+            //    num = 1;
+            //}
 
+            ab.Start.X = 62;
+            ab.Start.Y = 60;
+            ab.End.X = 136;
+            ab.End.Y = 60;
 
+            Console.WriteLine("crosspoint = " + ab.GetCrossPoint(5f).ToString());
 
         }
     }
