@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace SouthernBughIsoline
+namespace SouthernBughIsoline.UI
 {
     static class Program
     {
@@ -17,29 +17,31 @@ namespace SouthernBughIsoline
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run();
+            Application.Run(new Views.MainForm());
+
+            /*
 
             #region Points
-            PointF3D a = new PointF3D(0, 0, 16);
-            PointF3D b = new PointF3D(0, 0, 0);
-            PointF3D c = new PointF3D(0, 0, 3);
-            PointF3D d = new PointF3D(0, 0, 16);
-            PointF3D e = new PointF3D(0, 0, 10);
-            PointF3D f = new PointF3D(0, 0, 7);
-            PointF3D g = new PointF3D(0, 0, 12);
-            PointF3D h = new PointF3D(0, 0, 10);
-            PointF3D i = new PointF3D(0, 0, 18);
-            PointF3D j = new PointF3D(0, 0, 14);
-            PointF3D k = new PointF3D(0, 0, 13);
-            PointF3D l = new PointF3D(0, 0, 1);
-            PointF3D m = new PointF3D(0, 0, 6);
-            PointF3D n = new PointF3D(0, 0, 10);
-            PointF3D o = new PointF3D(0, 0, 3);
-            PointF3D p = new PointF3D(0, 0, 17);
-            PointF3D q = new PointF3D(0, 0, 13);
-            PointF3D r = new PointF3D(0, 0, 19);
-            PointF3D s = new PointF3D(0, 0, 2);
-            PointF3D t = new PointF3D(0, 0, 19);
+            PointF3D a = new PointF3D(0, 0, 16) { Name = "A" };
+            PointF3D b = new PointF3D(0, 0, 0)  { Name = "B" };
+            PointF3D c = new PointF3D(0, 0, 3)  { Name = "C" };
+            PointF3D d = new PointF3D(0, 0, 16) { Name = "D" };
+            PointF3D e = new PointF3D(0, 0, 10) { Name = "E" };
+            PointF3D f = new PointF3D(0, 0, 7)  { Name = "F" };
+            PointF3D g = new PointF3D(0, 0, 12) { Name = "G" };
+            PointF3D h = new PointF3D(0, 0, 10) { Name = "H" };
+            PointF3D i = new PointF3D(0, 0, 18) { Name = "I" };
+            PointF3D j = new PointF3D(0, 0, 14) { Name = "J" };
+            PointF3D k = new PointF3D(0, 0, 13) { Name = "K" };
+            PointF3D l = new PointF3D(0, 0, 1)  { Name = "L" };
+            PointF3D m = new PointF3D(0, 0, 6)  { Name = "M" };
+            PointF3D n = new PointF3D(0, 0, 10) { Name = "N" };
+            PointF3D o = new PointF3D(0, 0, 3)  { Name = "O" };
+            PointF3D p = new PointF3D(0, 0, 17) { Name = "P" };
+            PointF3D q = new PointF3D(0, 0, 13) { Name = "Q" };
+            PointF3D r = new PointF3D(0, 0, 19) { Name = "R" };
+            PointF3D s = new PointF3D(0, 0, 2)  { Name = "S" };
+            PointF3D t = new PointF3D(0, 0, 19) { Name = "T" };
             #endregion
 
             #region Segments
@@ -99,12 +101,19 @@ namespace SouthernBughIsoline
 
             float level = 5;
 
-            Grid grid = new Grid()
+            Grid grid = new Grid(new List<PointF3D> { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t })
             {
-                Nodes = { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t },
+                //Nodes = { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t },
                 Segments = { ab, af, bc, bg, cd, ch, de, di, ej, fg, fk, gh, gl, hi, hm, ij, _in, jo, kl, kp, lm, lq, mn, mr, no, ns, ot, pq, qr, rs, st },
                 Cells = { abgf, bchg, cdih, deji, fglk, ghml, hinm, ijon, klqp, lmrq, mnsr, nots }
             };
+
+            Random rand = new Random();
+
+            for (int _i = 0; _i < grid.Nodes.Count; _i++)
+            {
+                grid.Nodes[_i].X = grid.Nodes[_i].Y = (float)rand.NextDouble();
+            }
 
             for (int _i = 0; _i < grid.Segments.Count; _i++)
             {
@@ -112,53 +121,29 @@ namespace SouthernBughIsoline
             }
 
             int x, num = 1;
-            float[] lvl = { 5f, 8f };
+            float[] lvl = { 20.0f };
 
+            grid.FindLevelLines(lvl);
 
-            //for (x = 0; x < 2; x++){ 
-            //    LevelLine[] levelLines = grid.FindLevelLines(lvl[x]);
+            foreach (var lvlLine in grid.LevelLines)
+            {
+                Console.WriteLine("\n\nLevel = " + lvlLine.Level);
 
-            //    Console.Write("\nLevel = " + lvl[x]);
+                for (x = 0; x < lvlLine.Lines.Length; x++)
+                {
+                    Console.Write($"Line #{num++}: ");
 
-            //    foreach (var line in levelLines)
-            //    {
-            //        Console.Write($"\nLine #{num++}: ");
+                    foreach (var point in lvlLine.Lines[x].Points)
+                    {
+                        Console.Write(point.Parent.Name + " ");
+                    }
 
-            //        foreach (var point in line.Points)
-            //            Console.Write(point.Parent.Name + " ");
-            //    }
+                    Console.WriteLine();
+                }
 
-            //    num = 1;
-            //}
-
-            //grid.FindLevelLines(new[] { 5f, 8f, 10.001f });
-
-            //foreach (var lvlLine in grid.LevelLines)
-            //{
-            //    Console.WriteLine("\nLevel = " + lvlLine.Level);
-
-            //    for (x = 0; x < lvlLine.Lines.Length; x++)
-            //    {
-            //        Console.Write($"Line #{num++}: ");
-
-            //        foreach (var point in lvlLine.Lines[x].Points)
-            //        {
-            //            Console.Write(point.Parent.Name + " ");
-            //        }
-
-            //        Console.WriteLine();
-            //    }
-
-            //    num = 1;
-            //}
-
-            ab.Start.X = 62;
-            ab.Start.Y = 60;
-            ab.End.X = 136;
-            ab.End.Y = 60;
-
-            Console.WriteLine("crosspoint = " + ab.GetCrossPoint(5f).ToString());
-
+                num = 1;
+            }
+            */
         }
     }
 }

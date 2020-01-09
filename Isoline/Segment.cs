@@ -18,9 +18,9 @@ namespace Isoline
             }
 
             IsCrossed = false;
-
-
+            
             // DEBUG
+            Name = first.Name + second.Name;
             Start.Parent = this;
             End.Parent = this;
         }
@@ -32,11 +32,16 @@ namespace Isoline
         public int Number { get; set; }
         public PointF3D Start { get; private set; }
         public PointF3D End { get; private set; }
-        
+
         public bool IsCrossed { get; private set; }
         public bool IsEdge { get; set; } = false;
         public bool IsMarked { get; set; } = false;
         public bool IsStartOfLevelLine { get; set; } = false;
+
+        public bool ContainsPoint(PointF3D point)
+        {
+            return Start.Equals(point) || End.Equals(point);
+        }
 
         public void CopyTo(out Segment segmentCopy)
         {
@@ -63,6 +68,8 @@ namespace Isoline
         public PointF3D GetCrossPoint(float level)
         {
             float t = (level - Start.Z) / Math.Abs(Start.Z - End.Z);
+
+            t = Math.Abs(t); // от 0 до 1
 
             PointF3D crossPoint = new PointF3D()
             {

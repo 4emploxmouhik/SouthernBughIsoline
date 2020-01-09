@@ -6,7 +6,7 @@ namespace Isoline
     {
         // DEBUG
         public PointF3D() { }
-
+        
         public PointF3D(float x, float y, float z)
         {
             X = x;
@@ -20,11 +20,12 @@ namespace Isoline
 
         // DEBUG
         public Segment Parent { get; set; }
+        public string Name { get; set; }
 
         public override bool Equals(object obj)
         {
             if (!(obj is PointF3D) || (obj == null))
-                throw new ArgumentException("Not a PointF3D or equals null.", nameof(obj));
+                throw new ArgumentException("Not a Point3D or equals null.", nameof(obj));
 
             PointF3D point = (PointF3D)obj;
 
@@ -33,7 +34,7 @@ namespace Isoline
 
         public override string ToString()
         {
-            return $"[X = {X}, Y = {Y}, Z = {Z}]";
+            return $"[Name = {Name}, X = {X}, Y = {Y}, Z = {Z}]";
         }
     }
 }

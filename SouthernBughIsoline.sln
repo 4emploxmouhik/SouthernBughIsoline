@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29418.71
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.960
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Isoline", "Isoline\Isoline.csproj", "{891A0671-A6DE-4551-B5F9-006D29A1F257}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataAccess", "DataAccess\DataAccess.csproj", "{DFE4B495-DDEA-4A56-8F41-964AC982F826}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SouthernBughIsoline", "SouthernBughIsoline.UI\SouthernBughIsoline.csproj", "{BE7F94AD-2473-456B-B8FE-6F1BDE20A5EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SouthernBughIsoline.UI", "SouthernBughIsoline.UI\SouthernBughIsoline.UI.csproj", "{BE7F94AD-2473-456B-B8FE-6F1BDE20A5EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
