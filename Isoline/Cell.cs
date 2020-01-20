@@ -1,112 +1,165 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace Isoline
 {
-    public class Cell
+    public class Cell : IEquatable<Cell>
     {
-        private readonly Segment[] sides = new Segment[4];
+        private readonly Side[] sides;
+        private readonly int id;
 
         public Cell(Segment top, Segment left, Segment right, Segment bottom)
         {
-            sides[0] = top;
-            sides[1] = left;
-            sides[2] = right;
-            sides[3] = bottom;
+            sides = new Side[4];
+            sides[0] = new Side(top, Dock.Top);
+            sides[1] = new Side(left, Dock.Left);
+            sides[2] = new Side(right, Dock.Right);
+            sides[3] = new Side(bottom, Dock.Bottom);
 
-            // DEBUG
-            HashSet<string> leters = new HashSet<string>();
-
-            foreach (var side in sides)
-            {
-                leters.Add(side.Start.Name);
-                leters.Add(side.End.Name);
-            }
-
-            foreach (var letter in leters)
-                Name += letter;
+            IsMarked = false;
         }
 
-        // DEBUG
+        public Cell(Segment top, Segment left, Segment right, Segment bottom, int id) : this(top, left, right, bottom)
+        {
+            this.id = id;
+        }
+
+        public Cell(Side[] sides, int id)
+        {
+            this.sides = sides;
+            this.id = id;
+        }
+
+        public Side[] Sides => sides;
+        public int Id => id;
         public string Name { get; set; }
-        public bool IsMarked { get; set; } = false;
+        public bool IsMarked { get; set; }
 
-
-        public bool ContainsSegment(Segment segment)
+        public bool ContainsSide(Side someSide)
         {
             foreach (var side in sides)
             {
-                if (side.Equals(segment))
+                if (side == someSide)
                     return true;
             }
 
             return false;
         }
 
-        public Segment[] GetCrossedSides()
+        public PointF[] GetCrossPointsOfDiagonals(float level, PointF endOfLocalLine)
         {
-            List<Segment> crossedSegment = new List<Segment>();
+            Segment[] diagonals = new[] {
+                new Segment(sides[0].Segment.Nodes[0], sides[3].Segment.Nodes[1]),
+                new Segment(sides[3].Segment.Nodes[0], sides[0].Segment.Nodes[1]),
+            };
+            List<PointF> points = new List<PointF>();
+
+            foreach (var diagonal in diagonals)
+            {
+                if (diagonal.IsCrossing(level))
+                    points.Add(diagonal.GetCrossPoint(level));
+            }
+
+            if (points.Count == 2)
+            {
+                double d1 = Segment.GetDistance(points[0], endOfLocalLine),
+                       d2 = Segment.GetDistance(points[1], endOfLocalLine);
+
+                if (d1 < d2)
+                    points.Reverse();
+            }
+
+            return points.ToArray();
+        }
+
+        public Side[] GetCrossedSides()
+        {
+            List<Side> crossedSegment = new List<Side>();
 
             foreach (var side in sides)
             {
-                if (side.IsCrossed && !side.IsMarked && !side.IsStartOfLevelLine)
+                if (side.Segment.IsCrossed && !side.Segment.IsMarked && !side.Segment.IsStartOfLevelLine)
                     crossedSegment.Add(side);
             }
 
             return crossedSegment.ToArray();
         }
 
-        public Segment GetOppositeSide(Segment currentSide)
+        public Side GetOppositeSide(Side currentSide)
         {
             foreach (var side in sides)
             {
-                if (!side.Start.Equals(currentSide.Start) && !side.End.Equals(currentSide.End)
-                    && !side.Start.Equals(currentSide.End) && !side.End.Equals(currentSide.Start))
+                var sideNodes = side.Segment.Nodes;
+                var curSideNodes = currentSide.Segment.Nodes;
+
+                if (sideNodes[0].Location != curSideNodes[0].Location && sideNodes[1].Location != curSideNodes[1].Location &&
+                    sideNodes[0].Location != curSideNodes[1].Location && sideNodes[1].Location != curSideNodes[0].Location)
                 {
                     return side;
                 }
+
             }
 
-            return null;
+            return currentSide;
         }
 
-        public Segment[] GetOppositeSidesByNodes(Segment commonSide)
+        public Side[] GetOppositeSidesByNodes(Side commonSide)
         {
-            List<Segment> oppositeSides = new List<Segment>();
-            Segment oppositeSide = GetOppositeSide(commonSide);
+            List<Side> oppositeSides = new List<Side>();
+            Side oppositeSide = GetOppositeSide(commonSide);
 
             foreach (var side in sides)
             {
-                if (!side.Equals(oppositeSide) && !side.Equals(commonSide))
+                if (side != oppositeSide && side != commonSide)
                     oppositeSides.Add(side);
             }
 
             return oppositeSides.ToArray();
         }
 
-        public Segment GetSideWithCommonNode(Segment currentSide, Segment exceptionSide)
+        public Side GetSideWithCommonNode(Side currentSide, Side exceptionSide)
         {
             foreach (var side in sides)
             {
-                if (side.Equals(currentSide) || side.Equals(exceptionSide))
+                if (side == currentSide || side == exceptionSide)
                     continue;
 
-                if (side.Start.Equals(currentSide.Start) || side.End.Equals(currentSide.End))
+                if (side.Segment.ContainsNode(currentSide.Segment.Nodes[0]) || side.Segment.ContainsNode(currentSide.Segment.Nodes[1]))
                     return side;
             }
 
-            return null;
+            return currentSide;
+        }
+        
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Cell);
+        }
+
+        public bool Equals(Cell other)
+        {
+            return other != null &&
+                   EqualityComparer<Side[]>.Default.Equals(sides, other.sides) &&
+                   id == other.id;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = -1612763057;
+            hashCode = hashCode * -1521134295 + EqualityComparer<Side[]>.Default.GetHashCode(sides);
+            hashCode = hashCode * -1521134295 + id.GetHashCode();
+            return hashCode;
         }
 
         public override string ToString()
         {
-            string str = $"Name = {Name} ";
+            string str = $"[{(Name.Length > 0 ? $"Name = {Name}, " : "")}Id = {id}, IsMarked = {IsMarked}, Sides:";
 
             foreach (var side in sides)
-                str += side.ToString() + " ";
+                str += "\n\t" + side.ToString();
 
             return str;
         }
-
     }
 }

@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Isoline
 {
@@ -10,55 +9,112 @@ namespace Isoline
     {
         public const float LevelShift = 0.001f;
 
-        private LinkedList<PointF3D> points;
+        private List<Cell> cells = new List<Cell>();
+        private List<LevelLinesKit> levelLinesKits;
+
+        private LinkedList<PointF> pointsOfLine;
         private bool isGotEdge;
 
-        private Cell curCell = null;            // Ссылка на текущую ячейку.
-        private Cell startCell = null;          // Ссылка на начальную ячейку.
-        private Segment curSegment = null;      // Ссылка на теукщее ребро.
-        private Segment startOfLine = null;     // Ссылка на условное начало линии уровня.
+        private Cell startCell;
+        private Cell curCell;
+        private Side startSide;
+        private Side curSide;
 
-        public Grid() 
+        public Grid()
         {
-            points = new LinkedList<PointF3D>();
+            levelLinesKits = new List<LevelLinesKit>();
+            pointsOfLine = new LinkedList<PointF>();
+
+            IsUsedPointsOnDiagonals = false;
+            LevelLines = new List<LevelLinesKit>();
 
             SetDefaultState();
         }
 
-        public Grid(List<PointF3D> nodes) : this()
+        public Grid(List<Cell> cells) : this()
         {
-            Nodes = nodes;
-
-            foreach (var node in Nodes)
-                node.Z += LevelShift;
+            this.cells = cells;
         }
 
-        public List<PointF3D> Nodes { get; set; } = new List<PointF3D>();
-        public List<Segment> Segments { get; set; } = new List<Segment>();
-        public List<Cell> Cells { get; set; } = new List<Cell>();
-        public List<LevelLinesKit> LevelLines { get; private set; } = new List<LevelLinesKit>();
+        public bool IsUsedPointsOnDiagonals { get; set; }
+        public List<LevelLinesKit> LevelLines { get; set; }
+
+        public List<Node> Nodes
+        {
+            get
+            {
+                var nodes = from cell in cells
+                            from side in cell.Sides
+                            from node in side.Segment.Nodes
+                            select node;
+
+                HashSet<Node> nodesSet = new HashSet<Node>();
+
+                foreach (var node in nodes)
+                    nodesSet.Add(node);
+                
+                return nodesSet.OrderBy(n => n.Id).ToList();
+            }
+        }
+        public List<Segment> Segments
+        {
+            get
+            {
+                var segments = from cell in cells
+                               from side in cell.Sides
+                               select side.Segment;
+
+                HashSet<Segment> segmentsSet = new HashSet<Segment>();
+
+                foreach (var segment in segments)
+                    segmentsSet.Add(segment);
+
+                return segmentsSet.ToList();
+            }
+        }
+        public List<Cell> Cells => cells;
+
+        public void ChangeLevelOnNodes(List<(float Level, int Id)> levelsChangesKit)
+        {
+            for (int i = 0; i < levelsChangesKit.Count; i++)
+            {
+                foreach (var cell in cells)
+                {
+                    foreach (var side in cell.Sides)
+                    {
+                        foreach (var node in side.Segment.Nodes)
+                        {
+                            if (node.Id == levelsChangesKit[i].Id)
+                                node.Level = levelsChangesKit[i].Level + LevelShift;
+                        }
+                    }
+                }
+            }
+        }
 
         public void FindLevelLines(float[] levels)
         {
-            float minLvl = Nodes.Min(node => node.Z) - LevelShift
-                , maxLvl = Nodes.Max(node => node.Z) - LevelShift;
+            float minLvl = Nodes.Min(node => node.Level) - LevelShift
+                , maxLvl = Nodes.Max(node => node.Level) - LevelShift;
 
             foreach (var level in levels)
             {
                 if (level < minLvl || level > maxLvl)
                     continue;
 
-                LevelLines.Add(new LevelLinesKit() {
-                    Level = level,
-                    Lines = FindLevelLines(level)
+                LevelLines.Add(new LevelLinesKit()
+                {
+                    Lines = FindLevelLines(level),
+                    Level = level
                 });
             }
         }
 
-        public LevelLine[] FindLevelLines(float level)
+        public List<LevelLine> FindLevelLines(float level)
         {
             List<LevelLine> levelLines = new List<LevelLine>();
-            Segment[] crossedSegments;
+            Side[] crossedSides;
+            PointF crossPoint;
             Random rand = new Random();
 
             SetDefaultState();
@@ -71,60 +127,75 @@ namespace Isoline
 
         // Шаг второй.
         FindNextPoint:
-            crossedSegments = curCell.GetCrossedSides();
+            crossedSides = curCell.GetCrossedSides();
 
-            switch (crossedSegments.Length)
+            switch (crossedSides.Length)
             {
                 // Нашли начало линии.
                 case 0:
                     if (!isGotEdge)
-                        AddPoint(startOfLine.GetCrossPoint(level));
+                        AddPoint(startSide.Segment.GetCrossPoint(level));
 
                     levelLines.Add(InitialNewLine(level));
 
-                    if (GetCrossedSegmentsCount(false) > 0)
+                    if (GetCrossedSegmentsCount() > 0)
                         goto FindNextPoint;
 
                     break;
+
                 // Нашли обычное ребро с пересечением.
                 case 1:
-                    curSegment = crossedSegments[0];
+                    curSide = crossedSides[0];
                     goto default;
+
                 // Нашли два обычных ребра и возможно начало линии.
                 case 2:
-                    if (!curCell.GetOppositeSide(curSegment).Equals(startOfLine))
+                    if (curCell.GetOppositeSide(curSide) != startSide)
                         levelLines.Add(InitialNewLine(level));
                     else
                         goto case 3;
 
                     goto FindNextPoint;
+
                 // Нашли три обычных ребра с пересечением.
                 case 3:
-                    // Выбо первого попавшегося смежного ребра.
-                    //curSegment = curCell.GetSideWithCommonNode(curSegment, curCell.GetOppositeSide(curSegment));
-                    
                     // Случайный выбор ребра из двух возможных(смежных).
-                    crossedSegments = curCell.GetOppositeSidesByNodes(curSegment);
-                    
-                    curSegment = (rand.Next(10) % 2 == 0) ? crossedSegments[0] : crossedSegments[1];
+                    crossedSides = curCell.GetOppositeSidesByNodes(curSide);
+
+                    curSide = (rand.Next(10) % 2 == 0) ? crossedSides[0] : crossedSides[1];
                     goto default;
+
                 // Добавление точки в последовательность.
                 default:
-                    curSegment.IsMarked = true;
+                    curSide.Segment.IsMarked = true;
 
-                    AddPoint(curSegment.GetCrossPoint(level));
+                    // Найдем конец локальной линии.
+                    crossPoint = curSide.Segment.GetCrossPoint(level);
 
-                    if (curSegment.IsEdge && !curSegment.IsStartOfLevelLine && !isGotEdge)
+                    // Найдем и добавим точки на диагоналях в последовательность.
+                    if (IsUsedPointsOnDiagonals)
                     {
-                        curCell = GetAdjacentCell(startCell, startOfLine);
+                        foreach (var point in curCell.GetCrossPointsOfDiagonals(level, crossPoint))
+                        {
+                            AddPoint(point);
+                        }
+                    }
+
+                    // Добавим конец локальной линии в последовательность. 
+                    AddPoint(crossPoint);
+
+                    // Меняем текущую ячейку.
+                    if (curSide.Segment.IsEdge && !curSide.Segment.IsStartOfLevelLine && !isGotEdge)
+                    {
+                        curCell = GetAdjacentCell(startCell, startSide);
                         isGotEdge = true;
-                        
+
                         goto FindNextPoint;
                     }
 
-                    if (crossedSegments.Length >= 2) curCell.IsMarked = false;
+                    if (crossedSides.Length >= 2) curCell.IsMarked = false;
 
-                    curCell = GetAdjacentCell(curCell, curSegment);
+                    curCell = GetAdjacentCell(curCell, curSide);
                     curCell.IsMarked = true;
 
                     goto FindNextPoint;
@@ -132,150 +203,156 @@ namespace Isoline
 
             levelLines.AddRange(FindLevelLinesOfOnePoint(level));
 
-            return levelLines.ToArray();
+            return levelLines;
         }
 
         public LevelLine[] FindLevelLinesOfOnePoint(float level)
         {
-            List<LevelLine> levelLines = new List<LevelLine>();
+            HashSet<LevelLine> levelLines = new HashSet<LevelLine>();
             float levelWithShift = level + LevelShift;
 
-            foreach (var node in Nodes)
+            foreach (var cell in cells)
             {
-                // Проверка на узлах.
-                if (node.Z == levelWithShift)
+                foreach (var side in cell.Sides)
                 {
-                    if (CheckCrossingSegments(GetSegmentsWithCommonNode(node)) == false)
-                        levelLines.Add(new LevelLine(level, new PointF3D[] { node }));
+                    foreach (var node in side.Segment.Nodes)
+                    {
+                        if (node.Level == levelWithShift)
+                        {
+                            if (CheckCrossingSegments(GetSidesWithCommonNode(node)) == false)
+                                levelLines.Add(new LevelLine(new PointF[] { node.Location }, level));
+                        }
+                    }
                 }
             }
 
             return levelLines.ToArray();
         }
 
-        private void AddPoint(PointF3D point)
+        private void AddPoint(PointF point)
         {
-            // DEBUG
-            //Console.WriteLine("point parent is " + point.Parent.Name);
-
             if (isGotEdge)
-                points.AddFirst(point);
+                pointsOfLine.AddFirst(point);
             else
-                points.AddLast(point);
+                pointsOfLine.AddLast(point);
         }
 
-        private bool CheckCrossingSegments(Segment[] segments)
+        private bool CheckCrossingSegments(Side[] sides)
         {
             bool result = false;
 
-            foreach (var segment in segments)
-                if (segment.IsCrossed)
+            foreach (var side in sides)
+            {
+                if (side.Segment.IsCrossed)
                     result = true;
+            }
 
             return result;
         }
 
         private void FindCrossedSegments(float level)
         {
-            foreach (var segment in Segments)
-                segment.IsCrossing(level);
-        }
-
-        private void SetDefaultState()
-        {
-            curCell = null;
-            curSegment = null;
-            startCell = null;
-            startOfLine = null;
-            
-            foreach (var segment in Segments)
-                segment.SetDefaultState();
-
-            foreach (var cell in Cells)
-                cell.IsMarked = false;
-        }
-
-        private Cell GetAdjacentCell(Cell currentCell, Segment commonSide)
-        {
-            foreach (var cell in Cells)
+            foreach (var cell in cells)
             {
-                if (cell.ContainsSegment(commonSide) && !cell.Equals(currentCell))
+                foreach (var side in cell.Sides)
+                    side.Segment.IsCrossing(level);
+            }
+        }
+
+        private Cell GetAdjacentCell(Cell currentCell, Side commonSide)
+        {
+            foreach (var cell in cells)
+            {
+                if (cell.ContainsSide(commonSide) && cell != currentCell)
                     return cell;
             }
 
             return currentCell;
         }
 
-        private int GetCrossedSegmentsCount(bool isMarked)
+        private int GetCrossedSegmentsCount()
         {
-            int crossedSegmetnsCount = 0;
+            HashSet<Segment> crossedSegments = new HashSet<Segment>();
 
-            foreach (var segment in Segments)
+            foreach (var cell in cells)
             {
-                if (segment.IsCrossed && segment.IsMarked == isMarked)
-                    crossedSegmetnsCount++;
+                foreach (var side in cell.Sides)
+                {
+                    if (side.Segment.IsCrossed && !side.Segment.IsMarked)
+                        crossedSegments.Add(side.Segment);
+                }
             }
 
-            return crossedSegmetnsCount;
+            return crossedSegments.Count;
         }
 
-        private Segment[] GetSegmentsWithCommonNode(PointF3D node)
+        private Side[] GetSidesWithCommonNode(Node node)
         {
-            List<Segment> segments = new List<Segment>();
+            HashSet<Side> sides = new HashSet<Side>();
 
-            foreach (var segment in Segments)
+            foreach (var cell in cells)
             {
-                if (segment.ContainsPoint(node))
-                    segments.Add(segment);
+                foreach (var side in cell.Sides)
+                {
+                    if (side.Segment.ContainsNode(node))
+                        sides.Add(side);
+                }
             }
 
-            return segments.ToArray();
+            return sides.ToArray();
         }
 
         private LevelLine InitialNewLine(float level)
         {
-            LevelLine levelLine = new LevelLine(level, points.ToArray());
+            LevelLine levelLine = new LevelLine(pointsOfLine.ToArray(), level);
 
             // Поиск не маркированного ребра.
-            foreach (var segment in Segments)
+            foreach (var cell in cells)
             {
-                if (segment.IsCrossed && !segment.IsMarked)
+                foreach (var side in cell.Sides)
                 {
-                    points.Clear();
-                    isGotEdge = false;
-
-                    startOfLine = segment;
-
-                    curSegment = segment;
-                    curSegment.IsMarked = true;
-                    curSegment.IsStartOfLevelLine = true;
-
-                    if (GetCrossedSegmentsCount(false) != 0)
-                        AddPoint(curSegment.GetCrossPoint(level));
-
-                    foreach (var cell in Cells)
+                    if (side.Segment.IsCrossed && !side.Segment.IsMarked)
                     {
-                        if (cell.ContainsSegment(curSegment) && !cell.IsMarked)
-                        {
-                            curCell = cell;
-                            startCell = cell;
+                        pointsOfLine.Clear();
+                        isGotEdge = false;
 
-                            break;
-                        }
+                        startSide = side;
+
+                        curSide = side;
+                        curSide.Segment.IsMarked = true;
+                        curSide.Segment.IsStartOfLevelLine = true;
+
+                        if (GetCrossedSegmentsCount() != 0)
+                            AddPoint(curSide.Segment.GetCrossPoint(level));
+
+                        startCell = cell;
+                        curCell = cell;
+
+                        goto EndInitialNewLine;
                     }
-
-                    break;
                 }
             }
 
+        EndInitialNewLine:
             return levelLine;
         }
 
-        public struct LevelLinesKit
+        private void SetDefaultState()
         {
-            public LevelLine[] Lines { get; set; }
-            public float Level { get; set; }
-        }
+            startCell = null;
+            curCell = null;
 
+            foreach (var cell in cells)
+            {
+                cell.IsMarked = false;
+
+                foreach (var side in cell.Sides)
+                {
+                    side.Segment.IsCrossed = false;
+                    side.Segment.IsMarked = false;
+                    side.Segment.IsStartOfLevelLine = false;
+                }
+            }
+        }
     }
 }

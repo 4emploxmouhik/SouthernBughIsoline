@@ -1,25 +1,26 @@
-﻿namespace Isoline
+﻿using System.Collections.Generic;
+using System.Drawing;
+
+namespace Isoline
 {
     public class LevelLine
     {
-        public LevelLine() { }
-        public LevelLine(float level, PointF3D[] points)
+        private PointF[] points;
+        private readonly float level;
+
+        public LevelLine(PointF[] points, float level)
         {
-            Level = level;
-            Points = points;
+            this.level = level;
+            this.points = points;
         }
 
+        public PointF[] Points { get => points; set => points = value; }
+        public float Level => level;
+    }
+
+    public struct LevelLinesKit
+    {
+        public List<LevelLine> Lines { get; set; }
         public float Level { get; set; }
-        public PointF3D[] Points { get; set; }
-
-        public override string ToString()
-        {
-            string str = null;
-
-            foreach (PointF3D point in Points)
-                str += point.Parent.Name + " ";
-
-            return str;
-        }
     }
 }

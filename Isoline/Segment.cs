@@ -1,111 +1,113 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
 
 namespace Isoline
 {
-    public class Segment
+    public class Segment : IEquatable<Segment>
     {
-        public Segment(PointF3D first, PointF3D second)
+        private protected readonly Node start;
+        private protected readonly Node end;
+        private protected readonly int id;
+
+        public Segment(Node first, Node second)
         {
-            if ((first.X + first.Y) <= (second.X + second.Y))
+            if ((first.Location.X + first.Location.Y) <= (second.Location.X + second.Location.Y))
             {
-                Start = first;
-                End = second;
+                start = first;
+                end = second;
             }
             else
             {
-                Start = second;
-                End = first;
+                start = second;
+                end = first;
             }
 
             IsCrossed = false;
-            
-            // DEBUG
-            Name = first.Name + second.Name;
-            Start.Parent = this;
-            End.Parent = this;
+            IsEdge = false;
+            IsMarked = false;
+            IsStartOfLevelLine = false;
         }
 
-        // DEBUG
+        public Segment(Node first, Node second, int id) : this(first, second)
+        {
+            this.id = id;
+        }
+
+        public Node[] Nodes => new[] { start, end };
+        public int Id => id;
+        public bool IsCrossed { get; set; }
+        public bool IsEdge { get; set; }
+        public bool IsMarked { get; set; }
+        public bool IsStartOfLevelLine { get; set; }
         public string Name { get; set; }
 
-
-        public int Number { get; set; }
-        public PointF3D Start { get; private set; }
-        public PointF3D End { get; private set; }
-
-        public bool IsCrossed { get; private set; }
-        public bool IsEdge { get; set; } = false;
-        public bool IsMarked { get; set; } = false;
-        public bool IsStartOfLevelLine { get; set; } = false;
-
-        public bool ContainsPoint(PointF3D point)
+        public static double GetDistance(Node start, Node end)
         {
-            return Start.Equals(point) || End.Equals(point);
+            return Math.Sqrt(Math.Pow(end.Location.X - start.Location.X, 2) + Math.Pow(end.Location.Y - start.Location.Y, 2));
         }
 
-        public void CopyTo(out Segment segmentCopy)
+        public static double GetDistance(PointF start, PointF end)
         {
-            segmentCopy = new Segment(Start, End)
-            {
-                Number = this.Number,
-                IsCrossed = this.IsCrossed,
-                IsEdge = this.IsEdge,
-                IsMarked = this.IsMarked,
-                IsStartOfLevelLine = this.IsStartOfLevelLine
-            };
+            return Math.Sqrt(Math.Pow(end.X - start.X, 2) + Math.Pow(end.Y - start.Y, 2));
+        }
+
+        public bool ContainsNode(Node point)
+        {
+            return start == point || end == point;
         }
 
         public override bool Equals(object obj)
         {
-            if (!(obj is Segment) || (obj == null))
-                throw new ArgumentException("Not a Segment or equals null.", nameof(obj));
-
-            Segment edge = (Segment)obj;
-
-            return (edge.Number == Number) && edge.Start.Equals(Start) && edge.End.Equals(End);
+            return Equals(obj as Segment);
         }
 
-        public PointF3D GetCrossPoint(float level)
+        public bool Equals(Segment other)
         {
-            float t = (level - Start.Z) / Math.Abs(Start.Z - End.Z);
+            return other != null &&
+                   EqualityComparer<Node>.Default.Equals(start, other.start) &&
+                   EqualityComparer<Node>.Default.Equals(end, other.end) &&
+                   id == other.id;
+        }
 
-            t = Math.Abs(t); // от 0 до 1
+        public PointF GetCrossPoint(float level)
+        {
+            float t = Math.Abs((level - start.Level) / Math.Abs(start.Level - end.Level));
 
-            PointF3D crossPoint = new PointF3D()
+            PointF crossPoint = new PointF()
             {
-                X = ((1 - t) * Start.X) + (t * End.X),
-                Y = ((1 - t) * Start.Y) + (t * End.Y),
-                Z = level
-
-                // DEBUG
-                , Parent = this
+                X = ((1 - t) * start.Location.X) + (t * end.Location.X),
+                Y = ((1 - t) * start.Location.Y) + (t * end.Location.Y)
             };
 
             return crossPoint;
         }
 
+        public override int GetHashCode()
+        {
+            var hashCode = 399783785;
+            hashCode = hashCode * -1521134295 + EqualityComparer<Node>.Default.GetHashCode(start);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Node>.Default.GetHashCode(end);
+            hashCode = hashCode * -1521134295 + id.GetHashCode();
+            return hashCode;
+        }
+
         public bool IsCrossing(float level)
         {
-            if (level == Start.Z)
+            if (level == start.Level)
             {
                 return IsCrossed = true;
             }
             else
             {
-                return IsCrossed = ((level < Start.Z) && (level > End.Z)) || ((level > Start.Z) && (level < End.Z));
+                return IsCrossed = ((level < start.Level) && (level > end.Level)) || ((level > start.Level) && (level < end.Level));
             }
-        }
-
-        public void SetDefaultState()
-        {
-            IsCrossed = false;
-            IsMarked = false;
-            IsStartOfLevelLine = false;
         }
 
         public override string ToString()
         {
-            return $"[Name = {Name}, Number = {Number}, Start = {Start.ToString()}, End = {End.ToString()}, IsCrossed = {IsCrossed}, IsMarked = {IsMarked}]";
+            return $"[{((Name.Length > 0) ? $"Name = {Name}, " : "")}Id = {id}, IsCrossed = {IsCrossed}, IsEdge = {IsEdge}, "
+                + $"IsMarked = {IsMarked}, IsStartOfLevelLine = {IsStartOfLevelLine}, Start = {start.ToString()}], End = {end.ToString()}]";
         }
     }
 }
