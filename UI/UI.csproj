@@ -4,29 +4,14 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BE7F94AD-2473-456B-B8FE-6F1BDE20A5EA}</ProjectGuid>
+    <ProjectGuid>{17061D6A-7CDA-4AE3-83EE-D48FEC4A6A1B}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>SouthernBughIsoline.UI</RootNamespace>
-    <AssemblyName>SouthernBughIsoline</AssemblyName>
+    <RootNamespace>UI</RootNamespace>
+    <AssemblyName>UI</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <PublishUrl>publish\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -47,9 +32,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject>SouthernBughIsoline.UI.Program</StartupObject>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -67,44 +49,68 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Controllers\MapController.BuildLevelLinesSetting.cs" />
     <Compile Include="Controllers\IController.cs" />
-    <Compile Include="Controllers\MapController.cs" />
-    <Compile Include="Controllers\NodesController.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Views\Dialog\ChooseLevelsDialog.cs">
+    <Compile Include="Controllers\MainController.cs" />
+    <Compile Include="Views\Forms\Dialogs\ChooseLevelsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Views\Dialog\ChooseLevelsDialog.Designer.cs">
+    <Compile Include="Views\Forms\Dialogs\ChooseLevelsDialog.Designer.cs">
       <DependentUpon>ChooseLevelsDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Views\Dialog\CreateMapDialog.cs">
+    <Compile Include="Views\Forms\Dialogs\CreateMapDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Views\Dialog\CreateMapDialog.Designer.cs">
+    <Compile Include="Views\Forms\Dialogs\CreateMapDialog.Designer.cs">
       <DependentUpon>CreateMapDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Views\Forms\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Views\Forms\MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Forms\SetNodesValuesForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Views\Forms\SetNodesValuesForm.Designer.cs">
+      <DependentUpon>SetNodesValuesForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ILevelLineView.cs" />
+    <Compile Include="IView.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Views\Forms\ToolForm\RegionToolForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Views\Forms\ToolForm\RegionToolForm.Designer.cs">
+      <DependentUpon>RegionToolForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Views\IView.cs" />
-    <Compile Include="Views\LevelLineView.cs" />
-    <Compile Include="Views\MapView.cs">
-      <SubType>Form</SubType>
+    <Compile Include="Views\UC\LevelLinesViewUC.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Views\MapView.Designer.cs">
-      <DependentUpon>MapView.cs</DependentUpon>
+    <Compile Include="Views\UC\LevelLinesViewUC.Designer.cs">
+      <DependentUpon>LevelLinesViewUC.cs</DependentUpon>
     </Compile>
-    <Compile Include="Views\NodesView.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Views\NodesView.Designer.cs">
-      <DependentUpon>NodesView.cs</DependentUpon>
-    </Compile>
+    <Compile Include="Views\Containers\LevelLineViewContainer.cs" />
     <Compile Include="Views\UC\PointUC.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Views\UC\PointUC.Designer.cs">
       <DependentUpon>PointUC.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="Views\Forms\Dialogs\ChooseLevelsDialog.resx">
+      <DependentUpon>ChooseLevelsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Views\Forms\Dialogs\CreateMapDialog.resx">
+      <DependentUpon>CreateMapDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Views\Forms\MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Views\Forms\SetNodesValuesForm.resx">
+      <DependentUpon>SetNodesValuesForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -113,19 +119,12 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="Views\Dialog\ChooseLevelsDialog.resx">
-      <DependentUpon>ChooseLevelsDialog.cs</DependentUpon>
+    <EmbeddedResource Include="Views\Forms\ToolForm\RegionToolForm.resx">
+      <DependentUpon>RegionToolForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Views\Dialog\CreateMapDialog.resx">
-      <DependentUpon>CreateMapDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Views\MapView.resx">
-      <DependentUpon>MapView.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Views\NodesView.resx">
-      <DependentUpon>NodesView.cs</DependentUpon>
+    <EmbeddedResource Include="Views\UC\LevelLinesViewUC.resx">
+      <DependentUpon>LevelLinesViewUC.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Views\UC\PointUC.resx">
       <DependentUpon>PointUC.cs</DependentUpon>
@@ -145,50 +144,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.6.1 %28x86 и x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DataAccess\DataAccess.csproj">
-      <Project>{dfe4b495-ddea-4a56-8f41-964ac982f826}</Project>
-      <Name>DataAccess</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Isoline\Isoline.csproj">
       <Project>{891a0671-a6de-4551-b5f9-006d29a1f257}</Project>
       <Name>Isoline</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Сетка узлов SouthernBugh.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Grid_of_nodes_SouthernBugh_v2.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Grid_of_nodes_SouthernBugh_v21.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\карта.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\map_3.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\map_1.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\map_2.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

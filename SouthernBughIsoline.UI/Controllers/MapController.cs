@@ -2,75 +2,163 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Xml;
+using System.Drawing.Drawing2D;
 using System.Xml.Linq;
 
 namespace SouthernBughIsoline.UI.Controllers
 {
-    public class MapController
+    public partial class MapController : IController
     {
-        private List<Node> nodes = new List<Node>();
         private Grid grid = new Grid();
         private Image map;
         private string mapImagePath;
 
-        public Grid Grid { set => grid = value; } // DEBUG
+        public Image MapImage { get => map; }
+        public Grid Grid { get => grid; }
 
-        public void BulidLevelLines(Graphics canvas, Color colorOfLines, float[] nodesValues, float[] levels)
+        public List<LevelLine> BuildLevelLine(float level, bool isUsedPointsOnDiagonals)
         {
-            foreach (var cell in grid.Cells)
-            {
-                foreach (var side in cell.Sides)
-                {
-                    Console.WriteLine(side.ToString());
-                }
-            }
+            grid.IsUsedPointsOnDiagonals = isUsedPointsOnDiagonals;
 
-            foreach (var segment in grid.Segments)
-            {
-                canvas.DrawLine(new Pen(Color.Black, 1f), segment.Nodes[0].Location, segment.Nodes[1].Location);
-            }
+            return grid.FindLevelLines(level);
+        }
 
-            var nodes = grid.Nodes;
-            List<(float Level, int Id)> levelsChangesKit = new List<(float, int)>();
-
-            for (int i = 0; i < nodes.Count; i++)
-            {
-                levelsChangesKit.Add((nodesValues[i], i));
-
-                canvas.FillRectangle(Brushes.Red, nodes[i].Location.X - 1, nodes[i].Location.Y - 1, 3, 3);
-                canvas.DrawString(nodes[i].Name, new Font("Arial", 14, FontStyle.Bold), Brushes.Red, nodes[i].Location.X - 20, nodes[i].Location.Y - 20);
-            }
-
-            grid.ChangeLevelOnNodes(levelsChangesKit);
-            grid.IsUsedPointsOnDiagonals = false;
+        public Image BulidLevelLines(Color[] colorOfLines, float[] levels, bool isUsedPointsOnDiagonals)
+        {
+            grid.IsUsedPointsOnDiagonals = isUsedPointsOnDiagonals;
             grid.FindLevelLines(levels);
 
-            foreach (var level in grid.LevelLines)
+            return DrawLevelLines(colorOfLines);
+        }
+
+        public void ChangeLevelOnNodes(List<(float Level, int Id)> levelsChangesKit)
+        {
+            grid.ChangeLevelOnNodes(levelsChangesKit);
+        }
+
+        public Image DrawLevelLine(Image image, List<LevelLine> lines, Color colorOfLine)
+        {
+            Bitmap bmp = new Bitmap(image);
+            Graphics canvas = Graphics.FromImage(bmp);
+            canvas.SmoothingMode = SmoothingMode.AntiAlias;
+
+            foreach (var line in lines)
+            {
+                try
+                {
+                    canvas.DrawCurve(new Pen(colorOfLine, 3f), line.Points);
+                }
+                catch (ArgumentException) { /*Console.WriteLine(line.ToString());*/ }
+            }
+
+            return bmp;
+        }
+
+        public Image DrawLevelLines(Color[] colorOfLines)
+        {
+            Bitmap bmp = new Bitmap(map);
+            Graphics canvas = Graphics.FromImage(bmp);
+            canvas.SmoothingMode = SmoothingMode.AntiAlias;
+
+            //foreach (var segment in grid.Segments)
+            //    canvas.DrawLine(new Pen(Color.Black, 1f), segment.Nodes[0].Location, segment.Nodes[1].Location);
+
+            //foreach (var node in grid.Nodes)
+            //{
+            //    canvas.FillRectangle(Brushes.Red, node.Location.X - 1, node.Location.Y - 1, 3, 3);
+            //    canvas.DrawString("" + (node.Level - Grid.LevelShift), new Font("Arial", 10, FontStyle.Bold), Brushes.Black, node.Location.X - 20, node.Location.Y - 20);
+            //}
+
+            int indx = 0;
+
+            foreach (var level in grid.LevelLinesKits)
             {
                 foreach (var line in level.Lines)
                 {
                     try
                     {
-                        canvas.DrawCurve(new Pen(colorOfLines, 2f), line.Points, 0.5f);
+                        canvas.DrawCurve(new Pen(colorOfLines[indx], 3f), line.Points);
 
-                        foreach (var point in line.Points)
-                        {
-                            canvas.FillRectangle(Brushes.Green, point.X - 1, point.Y - 1, 3f, 3f);
-                        }
+                        //foreach (var point in line.Points)
+                        //{
+                        //    canvas.FillRectangle(Brushes.Green, point.X - 1, point.Y - 1, 3f, 3f);
+                        //}
+
+                        //canvas.DrawString("" + line.Level, new Font("Arial", 12, FontStyle.Bold), Brushes.Black, line.Points[0].X - 10, line.Points[0].Y - 10);
+                        //canvas.DrawString("" + line.Level, new Font("Arial", 12, FontStyle.Bold), Brushes.Black, line.Points[line.Points.Length - 1].X - 10, line.Points[line.Points.Length - 1].Y - 10);
                     }
-                    catch (ArgumentException) { }
+                    catch (ArgumentException) {/* Console.WriteLine(line.ToString());*/ }
                 }
+
+                if (colorOfLines.Length > 1 && indx < colorOfLines.Length)
+                    indx++;
             }
+
+            return bmp;
 
         }
 
-        public void SaveMap(string mapSettingsFilePath, string mapImagePath)
+        public Image LoadMap(string mapSettingsPath)
         {
             #region Проверка входных параметров
-            if (string.IsNullOrWhiteSpace(mapSettingsFilePath) || string.IsNullOrWhiteSpace(mapImagePath))
+            if (string.IsNullOrWhiteSpace(mapSettingsPath))
+            {
+                throw new ArgumentException("Incorrect path to map settings file.");
+            }
+            #endregion
+
+            XDocument xDoc = XDocument.Load(mapSettingsPath);
+            var xCells = xDoc.Element("map").Element("grid").Element("cells").Elements("cell");
+
+            List<Cell> cells = new List<Cell>();
+
+            foreach (var xCell in xCells)
+            {
+                List<Side> sides = new List<Side>();
+
+                foreach (var xSegment in xCell.Elements("segment"))
+                {
+                    List<Node> nodes = new List<Node>(2);
+
+                    foreach (var xNode in xSegment.Elements("node"))
+                    {
+                        Node node = new Node(
+                            (float)Convert.ToDouble(xNode.Attribute("x").Value),
+                            (float)Convert.ToDouble(xNode.Attribute("y").Value),
+                            Convert.ToInt32(xNode.Attribute("id").Value), 0)
+                        {
+                            Name = xNode.Attribute("name").Value
+                        };
+
+                        nodes.Add(node);
+                    }
+
+                    sides.Add(new Side(
+                        new Segment(nodes[0], nodes[1], Convert.ToInt32(xSegment.Attribute("id").Value))
+                        {
+                            IsEdge = Convert.ToBoolean(xSegment.Attribute("edge").Value),
+                            Name = xSegment.Attribute("name").Value
+                        },
+                        xSegment.Attribute("side").Value));
+                }
+
+                cells.Add(new Cell(sides.ToArray(), Convert.ToInt32(xCell.Attribute("id").Value))
+                {
+                    Name = xCell.Attribute("name").Value
+                });
+            }
+
+            grid = new Grid(cells);
+
+            mapImagePath = xDoc.Element("map").Element("image_path").Value;
+
+            return map = Image.FromFile(mapImagePath);
+        }
+
+        public void SaveMap(string mapSettingsPath, string mapImagePath, Grid grid)
+        {
+            #region Проверка входных параметров
+            if (string.IsNullOrWhiteSpace(mapSettingsPath) || string.IsNullOrWhiteSpace(mapImagePath))
             {
                 throw new ArgumentException("Incorrect path to map settings file.");
             }
@@ -79,6 +167,8 @@ namespace SouthernBughIsoline.UI.Controllers
                 throw new NullReferenceException("Grid equals null.");
             }
             #endregion
+
+            this.grid = grid;
 
             XDocument xDoc = new XDocument();
             XElement xMap = new XElement("map");
@@ -121,82 +211,9 @@ namespace SouthernBughIsoline.UI.Controllers
             xMap.Add(xImagePath, xGrid);
 
             xDoc.Add(xMap);
-            xDoc.Save(mapSettingsFilePath);
+            xDoc.Save(mapSettingsPath);
         }
 
-        public Image LoadMap(string mapSettingsFilePath)
-        {
-            #region Проверка входных параметров
-            if (string.IsNullOrWhiteSpace(mapSettingsFilePath))
-            {
-                throw new ArgumentException("Incorrect path to map settings file.");
-            }
-            #endregion
-
-            XDocument xDoc = XDocument.Load(mapSettingsFilePath);
-            var xCells = xDoc.Element("map").Element("grid").Element("cells").Elements("cell");
-
-            List<Cell> cells = new List<Cell>();
-
-            foreach (var xCell in xCells)
-            {
-                //List<Segment> segments = new List<Segment>();
-                List<Side> sides = new List<Side>();
-
-                foreach (var xSegment in xCell.Elements("segment"))
-                {
-                    List<Node> nodes = new List<Node>(2);
-
-                    foreach (var xNode in xSegment.Elements("node"))
-                    {
-                        Node node = new Node(
-                            (float)Convert.ToDouble(xNode.Attribute("x").Value),
-                            (float)Convert.ToDouble(xNode.Attribute("y").Value),
-                            Convert.ToInt32(xNode.Attribute("id").Value), 0)
-                        {
-                            Name = xNode.Attribute("name").Value
-                        };
-
-                        nodes.Add(node);
-                    }
-
-                    
-                    //Segment segment = new Segment(nodes[0], nodes[1], Convert.ToInt32(xSegment.Attribute("id").Value))
-                    //{
-                    //    IsEdge = Convert.ToBoolean(xSegment.Attribute("edge").Value),
-                    //    Name = xSegment.Attribute("name").Value
-                    //};
-                    sides.Add(new Side(
-                        new Segment(nodes[0], nodes[1], Convert.ToInt32(xSegment.Attribute("id").Value))
-                        {
-                            IsEdge = Convert.ToBoolean(xSegment.Attribute("edge").Value),
-                            Name = xSegment.Attribute("name").Value
-                        },
-                        xSegment.Attribute("side").Value
-                        ));
-
-                    //segments.Add(segment);
-                }
-
-                cells.Add(new Cell(sides.ToArray(), Convert.ToInt32(xCell.Attribute("id").Value)) 
-                {
-                    Name = xCell.Attribute("name").Value
-                });
-
-                //cells.Add(new Cell(segments[0], segments[1], segments[2], segments[3], Convert.ToInt32(xCell.Attribute("id").Value))
-                //{
-                //    Name = xCell.Attribute("name").Value
-                //});
-
-                //Console.WriteLine("{0} {1} {2} {3}", sides[0].Name, sides[1].Name, sides[2].Name, sides[3].Name);
-            }
-
-            grid = new Grid(cells);
-
-            mapImagePath = xDoc.Element("map").Element("image_path").Value;
-
-            return map = Image.FromFile(mapImagePath);
-        }
-
+        
     }
 }

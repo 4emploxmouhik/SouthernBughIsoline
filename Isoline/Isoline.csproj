@@ -46,9 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cell.cs" />
+    <Compile Include="Grid.cs" />
     <Compile Include="Segment.cs" />
     <Compile Include="LevelLine.cs" />
-    <Compile Include="Grid.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Side.cs" />

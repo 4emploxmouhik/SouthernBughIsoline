@@ -26,7 +26,7 @@ namespace Isoline
             pointsOfLine = new LinkedList<PointF>();
 
             IsUsedPointsOnDiagonals = false;
-            LevelLines = new List<LevelLinesKit>();
+            LevelLinesKits = new List<LevelLinesKit>();
 
             SetDefaultState();
         }
@@ -37,7 +37,8 @@ namespace Isoline
         }
 
         public bool IsUsedPointsOnDiagonals { get; set; }
-        public List<LevelLinesKit> LevelLines { get; set; }
+        public bool IsFindLevelsWithOnePoint { get; set; }
+        public List<LevelLinesKit> LevelLinesKits { get; set; }
 
         public List<Node> Nodes
         {
@@ -69,7 +70,7 @@ namespace Isoline
                 foreach (var segment in segments)
                     segmentsSet.Add(segment);
 
-                return segmentsSet.ToList();
+                return segmentsSet.OrderBy(s => s.Id).ToList();
             }
         }
         public List<Cell> Cells => cells;
@@ -97,12 +98,14 @@ namespace Isoline
             float minLvl = Nodes.Min(node => node.Level) - LevelShift
                 , maxLvl = Nodes.Max(node => node.Level) - LevelShift;
 
+            LevelLinesKits.Clear();
+
             foreach (var level in levels)
             {
                 if (level < minLvl || level > maxLvl)
                     continue;
 
-                LevelLines.Add(new LevelLinesKit()
+                LevelLinesKits.Add(new LevelLinesKit()
                 {
                     Lines = FindLevelLines(level),
                     Level = level
@@ -176,9 +179,7 @@ namespace Isoline
                     if (IsUsedPointsOnDiagonals)
                     {
                         foreach (var point in curCell.GetCrossPointsOfDiagonals(level, crossPoint))
-                        {
                             AddPoint(point);
-                        }
                     }
 
                     // Добавим конец локальной линии в последовательность. 
@@ -188,6 +189,7 @@ namespace Isoline
                     if (curSide.Segment.IsEdge && !curSide.Segment.IsStartOfLevelLine && !isGotEdge)
                     {
                         curCell = GetAdjacentCell(startCell, startSide);
+                        curCell.IsMarked = true;
                         isGotEdge = true;
 
                         goto FindNextPoint;
@@ -198,10 +200,17 @@ namespace Isoline
                     curCell = GetAdjacentCell(curCell, curSide);
                     curCell.IsMarked = true;
 
+                    foreach (var side in curCell.Sides)
+                    {
+                        if (side.Segment.Equals(curSide.Segment))
+                            side.Segment.IsMarked = curSide.Segment.IsMarked;
+                    }
+
                     goto FindNextPoint;
             }
 
-            levelLines.AddRange(FindLevelLinesOfOnePoint(level));
+            if (IsFindLevelsWithOnePoint)
+                levelLines.AddRange(FindLevelLinesOfOnePoint(level));
 
             return levelLines;
         }
@@ -317,6 +326,8 @@ namespace Isoline
                         isGotEdge = false;
 
                         startSide = side;
+                        startSide.Segment.IsMarked = true;
+                        startSide.Segment.IsStartOfLevelLine = true;
 
                         curSide = side;
                         curSide.Segment.IsMarked = true;
@@ -327,6 +338,18 @@ namespace Isoline
 
                         startCell = cell;
                         curCell = cell;
+
+                        // Меняем флаги во всех "одноименных" сегментах.
+                        Cell adjacentCell = GetAdjacentCell(startCell, startSide);
+
+                        foreach (var adjacentCellSide in adjacentCell.Sides)
+                        {
+                            if (adjacentCellSide.Segment.Equals(startSide.Segment))
+                            {
+                                adjacentCellSide.Segment.IsStartOfLevelLine = true;
+                                adjacentCellSide.Segment.IsMarked = true;
+                            }
+                        }
 
                         goto EndInitialNewLine;
                     }
@@ -339,6 +362,8 @@ namespace Isoline
 
         private void SetDefaultState()
         {
+            pointsOfLine.Clear();
+
             startCell = null;
             curCell = null;
 

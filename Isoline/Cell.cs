@@ -40,7 +40,7 @@ namespace Isoline
         {
             foreach (var side in sides)
             {
-                if (side == someSide)
+                if (side.Segment.Equals(someSide.Segment))
                     return true;
             }
 
@@ -131,7 +131,7 @@ namespace Isoline
 
             return currentSide;
         }
-        
+
         public override bool Equals(object obj)
         {
             return Equals(obj as Cell);
