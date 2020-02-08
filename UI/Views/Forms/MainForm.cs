@@ -50,8 +50,8 @@ namespace UI.Views.Forms
             {
                 isLevelLinesBuilded = value;
 
-                editLevelLineBtn.Enabled = IsLevelLinesBuilded;
-                editLevelBtn.Enabled = IsLevelLinesBuilded;
+                editLevelLineBtn.Enabled = isLevelLinesBuilded;
+                editLevelBtn.Enabled = isLevelLinesBuilded;
             }
         }
         public bool IsNodeSetModeOn { get; private set; }

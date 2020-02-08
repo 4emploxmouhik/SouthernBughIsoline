@@ -34,6 +34,7 @@ namespace UI.Views.UC
 
         private bool isEditLinesModeOn;
         private bool isEditLevelsModeOn;
+        private bool isLevelLinesBuilded;
 
         private Font font;
 
@@ -140,10 +141,10 @@ namespace UI.Views.UC
         }
         public bool IsLevelLinesBuilded
         {
-            get => IsLevelLinesBuilded;
+            get => isLevelLinesBuilded;
             set
             {
-                IsLevelLinesBuilded = value;
+                isLevelLinesBuilded = value;
 
                 foreach (ToolStripItem item in toolStrip.Items)
                     item.Enabled = true;
